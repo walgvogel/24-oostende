@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ThemeToggle } from './ThemeToggle'
 
 const categories = [
   { slug: 'politiek', naam: 'Politiek' },
@@ -29,16 +30,19 @@ export function Header() {
               </span>
             </div>
           </Link>
-          <Link
-            href="/zoeken"
-            className="text-text-light hover:text-blue-deep transition-colors"
-            aria-label="Zoeken"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/zoeken"
+              className="text-text-light hover:text-blue-deep transition-colors"
+              aria-label="Zoeken"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </Link>
+          </div>
         </div>
         <nav className="flex gap-0 border-t border-border overflow-x-auto">
           <Link href="/" className="px-4 py-3 text-sm font-medium text-text-secondary hover:text-blue-deep hover:border-b-2 hover:border-blue-deep whitespace-nowrap transition-all">
