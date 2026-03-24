@@ -42,6 +42,45 @@ export async function getFeedback(): Promise<(Feedback & { artikel_titel?: strin
   return data || []
 }
 
+export async function updateArtikel(id: string, updates: Partial<Artikel>): Promise<Artikel> {
+  const { data, error } = await supabase
+    .from('artikelen')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function archiveerArtikel(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('artikelen')
+    .update({ status: 'gearchiveerd', updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function publiceerArtikel(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('artikelen')
+    .update({ status: 'gepubliceerd', publicatie_datum: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function updateFeedbackStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ status })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
 export async function getStats() {
   const [artikelen, scans, opdrachten, feedback] = await Promise.all([
     supabase.from('artikelen').select('id, status, categorie_slug, publicatie_datum', { count: 'exact' }),

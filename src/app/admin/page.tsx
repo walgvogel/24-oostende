@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getAllArtikelen, getScans, getOpdrachten, getFeedback, getStats } from '@/lib/admin-queries'
+import { getAllArtikelen, getScans, getOpdrachten, getFeedback, getStats, updateArtikel, archiveerArtikel, publiceerArtikel, updateFeedbackStatus } from '@/lib/admin-queries'
 import type { Artikel, Scan, Opdracht, Feedback } from '@/lib/supabase'
 
 const ADMIN_WACHTWOORD = process.env.NEXT_PUBLIC_ADMIN_WACHTWOORD || '24oostende-admin'
@@ -169,10 +169,10 @@ export default function AdminPage() {
       {/* Content */}
       <div className="max-w-[1200px] mx-auto px-6 py-8">
         {tab === 'overzicht' && stats && <Overzicht stats={stats} />}
-        {tab === 'artikelen' && <ArtikelenTab artikelen={artikelen} />}
+        {tab === 'artikelen' && <ArtikelenTab artikelen={artikelen} onUpdate={laadData} />}
         {tab === 'opdrachten' && <OpdrachtenTab opdrachten={opdrachten} />}
         {tab === 'scans' && <ScansTab scans={scans} />}
-        {tab === 'feedback' && <FeedbackTab feedback={feedback} artikelen={artikelen} />}
+        {tab === 'feedback' && <FeedbackTab feedback={feedback} artikelen={artikelen} onUpdate={laadData} />}
       </div>
     </div>
   )
@@ -254,44 +254,191 @@ function Overzicht({ stats }: { stats: Stats }) {
   )
 }
 
-function ArtikelenTab({ artikelen }: { artikelen: Artikel[] }) {
+function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate: () => void }) {
+  const [editId, setEditId] = useState<string | null>(null)
+  const editArtikel = artikelen.find(a => a.id === editId)
+
   return (
-    <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Titel</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Categorie</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Leestijd</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {artikelen.map(a => (
-              <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors">
-                <td className="px-4 py-3">
-                  <a
-                    href={`/${a.categorie_slug}/${a.slug}`}
-                    target="_blank"
-                    className="text-[#1e6091] hover:underline font-medium"
-                  >
-                    {a.titel}
-                  </a>
-                  <div className="text-xs text-gray-400 mt-0.5">{a.slug}</div>
-                </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{categorieNamen[a.categorie_slug] || a.categorie_slug}</td>
-                <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                <td className="px-4 py-3 text-gray-500">{formatDatum(a.publicatie_datum)}</td>
-                <td className="px-4 py-3 text-gray-500">{a.leestijd_minuten} min</td>
+    <div className="flex gap-6">
+      {/* Tabel */}
+      <div className={`bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${editId ? 'w-1/2' : 'w-full'} transition-all`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Titel</th>
+                {!editId && <th className="text-left px-4 py-3 font-medium text-gray-500">Categorie</th>}
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500"></th>
               </tr>
-            ))}
-            {artikelen.length === 0 && (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Geen artikelen gevonden</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {artikelen.map(a => (
+                <tr key={a.id} className={`hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors cursor-pointer ${editId === a.id ? 'bg-blue-50 dark:bg-[#1e2d4a]' : ''}`} onClick={() => setEditId(a.id)}>
+                  <td className="px-4 py-3">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{a.titel}</span>
+                    <div className="text-xs text-gray-400 mt-0.5">{a.slug}</div>
+                  </td>
+                  {!editId && <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{categorieNamen[a.categorie_slug] || a.categorie_slug}</td>}
+                  <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{formatDatum(a.publicatie_datum)}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={(e) => { e.stopPropagation(); setEditId(a.id) }} className="text-[#1e6091] hover:underline text-xs">Bewerk</button>
+                  </td>
+                </tr>
+              ))}
+              {artikelen.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Geen artikelen gevonden</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Edit paneel */}
+      {editId && editArtikel && (
+        <ArtikelEditor artikel={editArtikel} onClose={() => setEditId(null)} onSaved={() => { onUpdate(); }} />
+      )}
+    </div>
+  )
+}
+
+function ArtikelEditor({ artikel, onClose, onSaved }: { artikel: Artikel; onClose: () => void; onSaved: () => void }) {
+  const [titel, setTitel] = useState(artikel.titel)
+  const [samenvatting, setSamenvatting] = useState(artikel.samenvatting || '')
+  const [inhoud, setInhoud] = useState(artikel.inhoud)
+  const [categorie, setCategorie] = useState(artikel.categorie_slug)
+  const [tags, setTags] = useState(artikel.tags?.join(', ') || '')
+  const [status, setStatus] = useState(artikel.status)
+  const [opslaan, setOpslaan] = useState(false)
+  const [melding, setMelding] = useState('')
+
+  useEffect(() => {
+    setTitel(artikel.titel)
+    setSamenvatting(artikel.samenvatting || '')
+    setInhoud(artikel.inhoud)
+    setCategorie(artikel.categorie_slug)
+    setTags(artikel.tags?.join(', ') || '')
+    setStatus(artikel.status)
+    setMelding('')
+  }, [artikel])
+
+  const handleOpslaan = async () => {
+    setOpslaan(true)
+    setMelding('')
+    try {
+      await updateArtikel(artikel.id, {
+        titel,
+        samenvatting: samenvatting || null,
+        inhoud,
+        categorie_slug: categorie,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        status: status as Artikel['status'],
+      })
+      setMelding('Opgeslagen!')
+      onSaved()
+    } catch (e) {
+      setMelding('Fout bij opslaan: ' + (e instanceof Error ? e.message : 'onbekend'))
+    }
+    setOpslaan(false)
+  }
+
+  const handleArchiveer = async () => {
+    if (!confirm('Weet je zeker dat je dit artikel wil archiveren?')) return
+    try {
+      await archiveerArtikel(artikel.id)
+      setMelding('Gearchiveerd')
+      onSaved()
+    } catch (e) {
+      setMelding('Fout: ' + (e instanceof Error ? e.message : 'onbekend'))
+    }
+  }
+
+  const handlePubliceer = async () => {
+    try {
+      await publiceerArtikel(artikel.id)
+      setMelding('Gepubliceerd!')
+      onSaved()
+    } catch (e) {
+      setMelding('Fout: ' + (e instanceof Error ? e.message : 'onbekend'))
+    }
+  }
+
+  const inp = "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-[#1a1a2e] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1e6091]"
+
+  return (
+    <div className="w-1/2 bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 overflow-y-auto max-h-[80vh]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-700 dark:text-gray-300">Artikel bewerken</h3>
+        <div className="flex items-center gap-2">
+          <a href={`/${artikel.categorie_slug}/${artikel.slug}`} target="_blank" className="text-xs text-[#1e6091] hover:underline">Bekijk live</a>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Titel</label>
+          <input value={titel} onChange={e => setTitel(e.target.value)} className={inp} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Categorie</label>
+            <select value={categorie} onChange={e => setCategorie(e.target.value)} className={inp}>
+              {Object.entries(categorieNamen).map(([slug, naam]) => (
+                <option key={slug} value={slug}>{naam}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <select value={status} onChange={e => setStatus(e.target.value as Artikel['status'])} className={inp}>
+              <option value="concept">Concept</option>
+              <option value="gepubliceerd">Gepubliceerd</option>
+              <option value="gearchiveerd">Gearchiveerd</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Samenvatting (SEO, max 160 tekens)</label>
+          <input value={samenvatting} onChange={e => setSamenvatting(e.target.value)} maxLength={160} className={inp} />
+          <span className="text-[10px] text-gray-400">{samenvatting.length}/160</span>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Tags (kommagescheiden)</label>
+          <input value={tags} onChange={e => setTags(e.target.value)} placeholder="afval, milieu, oostende" className={inp} />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Inhoud (Markdown)</label>
+          <textarea value={inhoud} onChange={e => setInhoud(e.target.value)} rows={15} className={`${inp} font-mono text-xs leading-relaxed`} />
+        </div>
+
+        {melding && (
+          <div className={`text-sm px-3 py-2 rounded ${melding.startsWith('Fout') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            {melding}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2">
+          <button onClick={handleOpslaan} disabled={opslaan} className="flex-1 bg-[#1e6091] text-white py-2.5 rounded-lg font-medium hover:bg-[#174d73] transition-colors disabled:opacity-50 text-sm">
+            {opslaan ? 'Opslaan...' : 'Opslaan'}
+          </button>
+          {artikel.status !== 'gepubliceerd' && (
+            <button onClick={handlePubliceer} className="px-4 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-sm">
+              Publiceer
+            </button>
+          )}
+          {artikel.status !== 'gearchiveerd' && (
+            <button onClick={handleArchiveer} className="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm">
+              Archiveer
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -372,8 +519,17 @@ function ScansTab({ scans }: { scans: Scan[] }) {
   )
 }
 
-function FeedbackTab({ feedback, artikelen }: { feedback: (Feedback & { artikel_titel?: string })[]; artikelen: Artikel[] }) {
+function FeedbackTab({ feedback, artikelen, onUpdate }: { feedback: (Feedback & { artikel_titel?: string })[]; artikelen: Artikel[]; onUpdate: () => void }) {
   const artikelMap = new Map(artikelen.map(a => [a.id, a.titel]))
+
+  const handleStatus = async (id: string, status: string) => {
+    try {
+      await updateFeedbackStatus(id, status)
+      onUpdate()
+    } catch (e) {
+      console.error('Fout bij status update:', e)
+    }
+  }
 
   return (
     <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -386,6 +542,7 @@ function FeedbackTab({ feedback, artikelen }: { feedback: (Feedback & { artikel_
               <th className="text-left px-4 py-3 font-medium text-gray-500">Type</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Acties</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -396,10 +553,23 @@ function FeedbackTab({ feedback, artikelen }: { feedback: (Feedback & { artikel_
                 <td className="px-4 py-3"><StatusBadge status={f.type} /></td>
                 <td className="px-4 py-3"><StatusBadge status={f.status} /></td>
                 <td className="px-4 py-3 text-gray-500">{formatDatum(f.created_at)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    {f.status === 'nieuw' && (
+                      <button onClick={() => handleStatus(f.id, 'in_behandeling')} className="text-[10px] px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Behandel</button>
+                    )}
+                    {f.status !== 'afgehandeld' && (
+                      <button onClick={() => handleStatus(f.id, 'afgehandeld')} className="text-[10px] px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors">Klaar</button>
+                    )}
+                    {f.status !== 'afgewezen' && (
+                      <button onClick={() => handleStatus(f.id, 'afgewezen')} className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">Afwijzen</button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
             {feedback.length === 0 && (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Geen feedback ontvangen</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-gray-400">Geen feedback ontvangen</td></tr>
             )}
           </tbody>
         </table>
