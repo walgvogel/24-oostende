@@ -5,7 +5,10 @@ import type { Metadata } from 'next'
 import { SocialShare } from '@/components/SocialShare'
 import { FeedbackKnop } from '@/components/FeedbackKnop'
 import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
-import DOMPurify from 'isomorphic-dompurify'
+
+function stripScripts(html: string): string {
+  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+}
 
 export const revalidate = 300
 export const dynamic = 'force-dynamic'
@@ -48,7 +51,7 @@ export default async function ArtikelPage({ params }: Props) {
   if (!artikel) notFound()
 
   const catNaam = categorieNamen[artikel.categorie_slug] || artikel.categorie_slug
-  const htmlInhoud = DOMPurify.sanitize(markdownToHtml(artikel.inhoud))
+  const htmlInhoud = stripScripts(markdownToHtml(artikel.inhoud))
 
   return (
     <article className="max-w-[760px] mx-auto px-6 py-10">
@@ -81,7 +84,7 @@ export default async function ArtikelPage({ params }: Props) {
       {artikel.artefacten_html && (
         <div
           className="mt-10 pt-6 border-t border-border"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(artikel.artefacten_html) }}
+          dangerouslySetInnerHTML={{ __html: stripScripts(artikel.artefacten_html) }}
         />
       )}
 
