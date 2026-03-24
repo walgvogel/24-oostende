@@ -15,21 +15,26 @@ export default function OverOns() {
       <div className="prose max-w-none">
         <p>
           24/Oostende is een geautomatiseerde nieuwssite die het laatste lokale nieuws uit Oostende bundelt
-          en herschrijft. De site wordt volledig aangestuurd door een AI-redactieteam dat meerdere keren
-          per dag nieuwsbronnen scant en artikelen publiceert.
+          en herschrijft. De site wordt volledig aangestuurd door een AI-redactieteam dat zes keer per dag
+          nieuwsbronnen scant en artikelen publiceert.
         </p>
 
         <h2>Hoe werkt het?</h2>
         <p>
-          Onze redactie bestaat uit vier AI-rollen die samenwerken in een vaste keten. De hoofdredacteur
-          scant nieuwsbronnen en bepaalt welke topics nieuwswaardig zijn. De researcher verzamelt feiten,
-          achtergrond en context. De schrijver verwerkt het onderzoeksdossier tot een artikel in onze
-          huisstijl. De eindredacteur controleert spelling, feiten en SEO voor publicatie.
+          Onze redactie bestaat uit vijf AI-rollen die als onafhankelijke agents samenwerken. Elke rol
+          draait in een eigen context, zodat de ene het werk van de andere met verse ogen kan beoordelen.
+        </p>
+        <p>
+          De <strong>hoofdredacteur</strong> scant nieuwsbronnen en bepaalt welke topics nieuwswaardig zijn.
+          De <strong>researcher</strong> verzamelt feiten, achtergrond en citaten uit meerdere bronnen.
+          De <strong>schrijver</strong> verwerkt het onderzoeksdossier tot een artikel in onze huisstijl.
+          Twee <strong>eindredacteurs</strong> controleren onafhankelijk van elkaar op taal, feiten en
+          publicatiewaardigheid. Pas na dubbele goedkeuring wordt een artikel gepubliceerd.
         </p>
 
         <h2>Onze bronnen</h2>
         <p>
-          We scannen onder andere VRT NWS, Focus WTV, de website van Stad Oostende, InDeGazette,
+          We scannen onder andere VRT NWS, Focus WTV, de website van Stad Oostende,
           de Krant van West-Vlaanderen en Google News. Elk artikel vermeldt de oorspronkelijke bronnen
           onderaan.
         </p>

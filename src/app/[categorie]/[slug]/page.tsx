@@ -78,6 +78,13 @@ export default async function ArtikelPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: htmlInhoud }}
       />
 
+      {artikel.artefacten_html && (
+        <div
+          className="mt-10 pt-6 border-t border-border"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(artikel.artefacten_html) }}
+        />
+      )}
+
       {artikel.tags && artikel.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-10 pt-6 border-t border-border">
           {artikel.tags.map((tag) => (

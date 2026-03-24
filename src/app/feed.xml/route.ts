@@ -10,7 +10,7 @@ export async function GET() {
   } catch {
     // Supabase unreachable
   }
-  const siteUrl = 'https://24oostende.be'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://24-oostende.vercel.app'
 
   const items = artikelen
     .map(
