@@ -1,16 +1,6 @@
 import Link from 'next/link'
 import { ThemeToggle } from './ThemeToggle'
-
-const categories = [
-  { slug: 'politiek', naam: 'Politiek' },
-  { slug: 'samenleving', naam: 'Samenleving' },
-  { slug: 'cultuur', naam: 'Cultuur' },
-  { slug: 'sport', naam: 'Sport' },
-  { slug: 'economie', naam: 'Economie' },
-  { slug: 'verkeer-mobiliteit', naam: 'Verkeer' },
-  { slug: 'natuur-milieu', naam: 'Natuur' },
-  { slug: 'lifestyle', naam: 'Lifestyle' },
-]
+import { CATEGORIEEN } from '@/lib/categorieen'
 
 export function Header() {
   return (
@@ -48,13 +38,13 @@ export function Header() {
           <Link href="/" className="px-4 py-3 text-sm font-medium text-text-secondary hover:text-blue-deep hover:border-b-2 hover:border-blue-deep whitespace-nowrap transition-all">
             Home
           </Link>
-          {categories.map((cat) => (
+          {CATEGORIEEN.map((cat) => (
             <Link
               key={cat.slug}
               href={`/${cat.slug}`}
               className="px-4 py-3 text-sm font-medium text-text-secondary hover:text-blue-deep hover:border-b-2 hover:border-blue-deep whitespace-nowrap transition-all"
             >
-              {cat.naam}
+              {cat.naamKort}
             </Link>
           ))}
           <Link

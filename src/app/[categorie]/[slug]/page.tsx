@@ -4,23 +4,13 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SocialShare } from '@/components/SocialShare'
 import { FeedbackKnop } from '@/components/FeedbackKnop'
+import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
+import DOMPurify from 'isomorphic-dompurify'
 
 export const revalidate = 300
 export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ categorie: string; slug: string }> }
-
-const categorieNamen: Record<string, string> = {
-  politiek: 'Politiek',
-  samenleving: 'Samenleving',
-  cultuur: 'Cultuur',
-  sport: 'Sport',
-  economie: 'Economie',
-  'verkeer-mobiliteit': 'Verkeer & mobiliteit',
-  'natuur-milieu': 'Natuur & milieu',
-  veiligheid: 'Veiligheid',
-  lifestyle: 'Lifestyle',
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -58,7 +48,7 @@ export default async function ArtikelPage({ params }: Props) {
   if (!artikel) notFound()
 
   const catNaam = categorieNamen[artikel.categorie_slug] || artikel.categorie_slug
-  const htmlInhoud = markdownToHtml(artikel.inhoud)
+  const htmlInhoud = DOMPurify.sanitize(markdownToHtml(artikel.inhoud))
 
   return (
     <article className="max-w-[760px] mx-auto px-6 py-10">

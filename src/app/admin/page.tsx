@@ -3,17 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAllArtikelen, getScans, getOpdrachten, getFeedback, getStats, updateArtikel, archiveerArtikel, publiceerArtikel, updateFeedbackStatus } from '@/lib/admin-queries'
 import type { Artikel, Scan, Opdracht, Feedback } from '@/lib/supabase'
-
-const ADMIN_WACHTWOORD = process.env.NEXT_PUBLIC_ADMIN_WACHTWOORD || '24oostende-admin'
+import { categorieNamen } from '@/lib/categorieen'
 
 type Stats = Awaited<ReturnType<typeof getStats>>
 type Tab = 'overzicht' | 'artikelen' | 'opdrachten' | 'scans' | 'feedback'
-
-const categorieNamen: Record<string, string> = {
-  politiek: 'Politiek', samenleving: 'Samenleving', cultuur: 'Cultuur',
-  sport: 'Sport', economie: 'Economie', 'verkeer-mobiliteit': 'Verkeer',
-  'natuur-milieu': 'Natuur', veiligheid: 'Veiligheid', lifestyle: 'Lifestyle',
-}
 
 const statusKleuren: Record<string, string> = {
   gepubliceerd: 'bg-green-100 text-green-800',
@@ -82,13 +75,22 @@ export default function AdminPage() {
     if (authenticated) laadData()
   }, [authenticated, laadData])
 
-  const login = (e: React.FormEvent) => {
+  const login = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (wachtwoord === ADMIN_WACHTWOORD) {
-      setAuthenticated(true)
-      setFout('')
-    } else {
-      setFout('Verkeerd wachtwoord')
+    setFout('')
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wachtwoord }),
+      })
+      if (res.ok) {
+        setAuthenticated(true)
+      } else {
+        setFout('Verkeerd wachtwoord')
+      }
+    } catch {
+      setFout('Verbindingsfout')
     }
   }
 

@@ -2,20 +2,13 @@ import { getArtikelenByCategorie, getCategorieen } from '@/lib/queries'
 import { ArtikelKaart } from '@/components/ArtikelKaart'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { categorieNamenVolledig } from '@/lib/categorieen'
 
 export const revalidate = 300
 export const dynamic = 'force-dynamic'
 
 const categorieNamen: Record<string, string> = {
-  politiek: 'Politiek',
-  samenleving: 'Samenleving',
-  cultuur: 'Cultuur',
-  sport: 'Sport',
-  economie: 'Economie',
-  'verkeer-mobiliteit': 'Verkeer & mobiliteit',
-  'natuur-milieu': 'Natuur & milieu',
-  veiligheid: 'Veiligheid',
-  lifestyle: 'Lifestyle',
+  ...categorieNamenVolledig,
   schuimkoppen: 'Schuimkoppen',
 }
 
