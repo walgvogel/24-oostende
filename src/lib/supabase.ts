@@ -29,3 +29,38 @@ export type Categorie = {
   slug: string
   naam: string
 }
+
+export type Scan = {
+  id: string
+  scan_datum: string
+  bronnen_gescand: string[]
+  bronnen_geblokkeerd: string[]
+  aantal_opdrachten: number
+  aantal_afgewezen: number
+  rapport: string | null
+  created_at: string
+}
+
+export type Opdracht = {
+  id: string
+  scan_datum: string
+  titel: string
+  categorie_slug: string | null
+  prioriteit: string
+  type: string
+  briefing: string | null
+  bronnen: { naam: string; url: string }[]
+  status: string
+  artikel_id: string | null
+  created_at: string
+}
+
+export type Feedback = {
+  id: string
+  artikel_id: string | null
+  type: string
+  bericht: string
+  email: string | null
+  status: string
+  created_at: string
+}
