@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SocialShare } from '@/components/SocialShare'
 import { FeedbackKnop } from '@/components/FeedbackKnop'
+import { InteractiveQuiz } from '@/components/InteractiveQuiz'
 import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
 
 function stripScripts(html: string): string {
@@ -82,10 +83,7 @@ export default async function ArtikelPage({ params }: Props) {
       />
 
       {artikel.artefacten_html && (
-        <div
-          className="mt-10 pt-6 border-t border-border"
-          dangerouslySetInnerHTML={{ __html: stripScripts(artikel.artefacten_html) }}
-        />
+        <InteractiveQuiz html={stripScripts(artikel.artefacten_html)} />
       )}
 
       {artikel.tags && artikel.tags.length > 0 && (
