@@ -1,5 +1,7 @@
-import { getArtikelBySlug, getArtikelen } from '@/lib/queries'
-import { notFound } from 'next/navigation'
+85
+ { getArtikelBySlug, getArtikelen } from '@/lib/queries'
+86
+ { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SocialShare } from '@/components/SocialShare'
