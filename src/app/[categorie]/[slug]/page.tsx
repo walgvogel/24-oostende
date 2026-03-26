@@ -7,6 +7,7 @@ import { FeedbackKnop } from '@/components/FeedbackKnop'
 import { VraagSectie } from '@/components/VraagSectie'
 import { ArtefactWeergave } from '@/components/ArtefactWeergave'
 import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
+import { getArtikelType, getInhoudsTags, ARTIKEL_TYPES } from '@/lib/artikeltypes'
 
 function stripScripts(html: string): string {
   return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -55,6 +56,9 @@ export default async function ArtikelPage({ params }: Props) {
   const catNaam = categorieNamen[artikel.categorie_slug] || artikel.categorie_slug
   const htmlInhoud = stripScripts(markdownToHtml(artikel.inhoud))
   const beantwoordeVragen = await getBeantwoordeVragen(artikel.id)
+  const type = getArtikelType(artikel.tags)
+  const typeConfig = ARTIKEL_TYPES[type]
+  const inhoudsTags = getInhoudsTags(artikel.tags)
 
   return (
     <article className="max-w-[760px] mx-auto px-6 py-10">
@@ -72,6 +76,9 @@ export default async function ArtikelPage({ params }: Props) {
 
       <div className="flex items-center gap-4 text-sm text-text-light pb-6 mb-8 border-b border-border">
         {artikel.publicatie_datum && <span>{formatDatum(artikel.publicatie_datum)}</span>}
+        <span className={`px-2.5 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider ${typeConfig.kleur}`}>
+          {typeConfig.label}
+        </span>
         <span className="bg-sand-light px-2.5 py-0.5 rounded-full text-[12px] text-text-secondary">
           {artikel.leestijd_minuten} min leestijd
         </span>
@@ -88,9 +95,9 @@ export default async function ArtikelPage({ params }: Props) {
         <ArtefactWeergave html={artikel.artefacten_html} />
       )}
 
-      {artikel.tags && artikel.tags.length > 0 && (
+      {inhoudsTags.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-10 pt-6 border-t border-border">
-          {artikel.tags.map((tag) => (
+          {inhoudsTags.map((tag) => (
             <span key={tag} className="bg-sand-light text-text-secondary text-[12px] px-3 py-1 rounded-full">
               {tag}
             </span>
