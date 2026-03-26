@@ -59,7 +59,8 @@ export default async function BrusselArtikelPage({ params }: Props) {
   const artikel = await getArtikelBySlug(slug, BRUSSEL_SECTIE_SLUG)
   if (!artikel) notFound()
 
-  const htmlInhoud = stripScripts(markdownToHtml(artikel.inhoud))
+  const isAlHtml = /^\s*<[a-z][\s\S]*>/i.test(artikel.inhoud.trim())
+  const htmlInhoud = isAlHtml ? stripScripts(artikel.inhoud) : stripScripts(markdownToHtml(artikel.inhoud))
   const beantwoordeVragen = await getBeantwoordeVragen(artikel.id)
   const type = getArtikelType(artikel.tags)
   const typeConfig = ARTIKEL_TYPES[type]
