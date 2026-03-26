@@ -1,10 +1,12 @@
 import { supabase, type Artikel, type Categorie, type Vraag } from './supabase'
+import { BRUSSEL_SECTIE_SLUG } from './categorieen'
 
 export async function getArtikelen(limit = 20): Promise<Artikel[]> {
   const { data, error } = await supabase
     .from('artikelen')
     .select('*')
     .eq('status', 'gepubliceerd')
+    .neq('categorie_slug', BRUSSEL_SECTIE_SLUG)
     .order('publicatie_datum', { ascending: false })
     .limit(limit)
 
@@ -12,16 +14,30 @@ export async function getArtikelen(limit = 20): Promise<Artikel[]> {
   return data || []
 }
 
-export async function getArtikelBySlug(slug: string): Promise<Artikel | null> {
+export async function getArtikelBySlug(slug: string, categorieSlug: string): Promise<Artikel | null> {
   const { data, error } = await supabase
     .from('artikelen')
     .select('*')
     .eq('slug', slug)
     .eq('status', 'gepubliceerd')
+    .eq('categorie_slug', categorieSlug)
     .single()
 
   if (error) return null
   return data
+}
+
+export async function getBrusselArtikelen(limit = 20): Promise<Artikel[]> {
+  const { data, error } = await supabase
+    .from('artikelen')
+    .select('*')
+    .eq('categorie_slug', BRUSSEL_SECTIE_SLUG)
+    .eq('status', 'gepubliceerd')
+    .order('publicatie_datum', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data || []
 }
 
 export async function getArtikelenByCategorie(categorieSlug: string, limit = 20): Promise<Artikel[]> {
@@ -41,6 +57,7 @@ export async function getCategorieen(): Promise<Categorie[]> {
   const { data, error } = await supabase
     .from('categorieen')
     .select('*')
+    .neq('slug', BRUSSEL_SECTIE_SLUG)
     .order('naam')
 
   if (error) throw error
@@ -52,6 +69,7 @@ export async function zoekArtikelen(query: string, limit = 20): Promise<Artikel[
     .from('artikelen')
     .select('*')
     .eq('status', 'gepubliceerd')
+    .neq('categorie_slug', BRUSSEL_SECTIE_SLUG)
     .or(`titel.ilike.%${query}%,inhoud.ilike.%${query}%,samenvatting.ilike.%${query}%`)
     .order('publicatie_datum', { ascending: false })
     .limit(limit)
@@ -65,6 +83,7 @@ export async function getLatestPerCategorie(): Promise<Record<string, Artikel[]>
     .from('artikelen')
     .select('*')
     .eq('status', 'gepubliceerd')
+    .neq('categorie_slug', BRUSSEL_SECTIE_SLUG)
     .order('publicatie_datum', { ascending: false })
 
   if (error) throw error

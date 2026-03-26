@@ -7,7 +7,12 @@ import { FeedbackKnop } from '@/components/FeedbackKnop'
 import { VraagSectie } from '@/components/VraagSectie'
 import { ArtefactWeergave } from '@/components/ArtefactWeergave'
 import { CorrectieNotitie } from '@/components/CorrectieNotitie'
-import { getCategorieLabel } from '@/lib/categorieen'
+import {
+  BRUSSEL_SECTIE_LABEL,
+  BRUSSEL_SECTIE_SLUG,
+  getCategorieKleur,
+  getCategorieLabel,
+} from '@/lib/categorieen'
 import { getArtikelType, getInhoudsTags, ARTIKEL_TYPES } from '@/lib/artikeltypes'
 
 function stripScripts(html: string): string {
@@ -17,11 +22,11 @@ function stripScripts(html: string): string {
 export const revalidate = 300
 export const dynamic = 'force-dynamic'
 
-type Props = { params: Promise<{ categorie: string; slug: string }> }
+type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug, categorie } = await params
-  const artikel = await getArtikelBySlug(slug, categorie)
+  const { slug } = await params
+  const artikel = await getArtikelBySlug(slug, BRUSSEL_SECTIE_SLUG)
   if (!artikel) return {}
   return {
     title: artikel.titel,
@@ -49,26 +54,33 @@ function formatDatum(datum: string) {
   })
 }
 
-export default async function ArtikelPage({ params }: Props) {
-  const { slug, categorie } = await params
-  const artikel = await getArtikelBySlug(slug, categorie)
+export default async function BrusselArtikelPage({ params }: Props) {
+  const { slug } = await params
+  const artikel = await getArtikelBySlug(slug, BRUSSEL_SECTIE_SLUG)
   if (!artikel) notFound()
 
-  const catNaam = getCategorieLabel(artikel.categorie_slug, 'volledig')
   const htmlInhoud = stripScripts(markdownToHtml(artikel.inhoud))
   const beantwoordeVragen = await getBeantwoordeVragen(artikel.id)
   const type = getArtikelType(artikel.tags)
   const typeConfig = ARTIKEL_TYPES[type]
   const inhoudsTags = getInhoudsTags(artikel.tags)
+  const labelKleur = getCategorieKleur(artikel.categorie_slug)
+  const label = getCategorieLabel(artikel.categorie_slug, 'volledig')
 
   return (
     <article className="max-w-[760px] mx-auto px-6 py-10">
       <div className="text-[13px] text-text-light mb-6">
         <Link href="/" className="text-blue-light hover:underline">Home</Link>
         {' > '}
-        <Link href={`/${categorie}`} className="text-blue-light hover:underline">{catNaam}</Link>
+        <Link href={`/${BRUSSEL_SECTIE_SLUG}`} className="text-blue-light hover:underline">{BRUSSEL_SECTIE_LABEL}</Link>
         {' > '}
         <span>{artikel.titel.slice(0, 40)}...</span>
+      </div>
+
+      <div className="mb-4">
+        <span className={`inline-flex rounded px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${labelKleur}`}>
+          {label}
+        </span>
       </div>
 
       <h1 className="font-['Playfair_Display',serif] text-[38px] font-extrabold leading-[1.15] mb-4">
@@ -105,7 +117,6 @@ export default async function ArtikelPage({ params }: Props) {
           ))}
         </div>
       )}
-
 
       <CorrectieNotitie correcties={artikel.correcties || []} />
 

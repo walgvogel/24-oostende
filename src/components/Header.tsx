@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ThemeToggle } from './ThemeToggle'
-import { CATEGORIEEN } from '@/lib/categorieen'
+import { BRUSSEL_SECTIE_SLUG, BRUSSEL_SECTIE_LABEL, CATEGORIEEN } from '@/lib/categorieen'
 
 export function Header() {
   return (
@@ -47,6 +47,12 @@ export function Header() {
               {cat.naamKort}
             </Link>
           ))}
+          <Link
+            href={`/${BRUSSEL_SECTIE_SLUG}`}
+            className="px-4 py-3 text-sm font-medium text-text-secondary hover:text-blue-deep hover:border-b-2 hover:border-blue-deep whitespace-nowrap transition-all"
+          >
+            {BRUSSEL_SECTIE_LABEL}
+          </Link>
           <Link
             href="/schuimkoppen"
             className="px-4 py-3 text-sm font-medium text-sunset-dark italic hover:border-b-2 hover:border-sunset whitespace-nowrap transition-all"

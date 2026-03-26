@@ -1,4 +1,5 @@
 import { supabase, type Artikel, type Scan, type Opdracht, type Feedback, type Correctie } from './supabase'
+import { BRUSSEL_SECTIE_SLUG } from './categorieen'
 
 export async function getAllArtikelen(): Promise<Artikel[]> {
   const { data, error } = await supabase
@@ -146,7 +147,18 @@ export async function getStats() {
 
   // Artikelen per categorie
   const perCategorie: Record<string, number> = {}
+  const perSectie = {
+    oostende: 0,
+    brussel: 0,
+  }
+
   for (const a of arts) {
+    if (a.categorie_slug === BRUSSEL_SECTIE_SLUG) {
+      perSectie.brussel += 1
+      continue
+    }
+
+    perSectie.oostende += 1
     perCategorie[a.categorie_slug] = (perCategorie[a.categorie_slug] || 0) + 1
   }
 
@@ -174,6 +186,7 @@ export async function getStats() {
     totaalScans: scans.count || 0,
     openOpdrachten,
     nieuweFeedback,
+    perSectie,
     perCategorie,
     perWeek,
   }

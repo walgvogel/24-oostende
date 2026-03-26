@@ -3,10 +3,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAllArtikelen, getScans, getOpdrachten, getFeedback, getStats, updateArtikel, archiveerArtikel, publiceerArtikel, updateFeedbackStatus } from '@/lib/admin-queries'
 import type { Artikel, Scan, Opdracht, Feedback, Vraag } from '@/lib/supabase'
-import { categorieNamen } from '@/lib/categorieen'
+import {
+  BRUSSEL_SECTIE_LABEL,
+  BRUSSEL_SECTIE_SLUG,
+  categorieNamen,
+  getArtikelPadVanSlug,
+  getCategorieLabel,
+  isBrusselSectie,
+} from '@/lib/categorieen'
 
 type Stats = Awaited<ReturnType<typeof getStats>>
 type Tab = 'overzicht' | 'artikelen' | 'opdrachten' | 'scans' | 'feedback' | 'vragen'
+type SectieFilter = 'alle' | 'oostende' | 'brussel'
 
 const statusKleuren: Record<string, string> = {
   gepubliceerd: 'bg-green-100 text-green-800',
@@ -38,6 +46,60 @@ function StatCard({ label, waarde, sub }: { label: string; waarde: number | stri
       <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{label}</div>
       <div className="text-3xl font-bold text-[#1e6091]">{waarde}</div>
       {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
+    </div>
+  )
+}
+
+function getSectie(categorieSlug: string | null | undefined): Exclude<SectieFilter, 'alle'> {
+  return isBrusselSectie(categorieSlug) ? 'brussel' : 'oostende'
+}
+
+function SectieBadge({ categorieSlug }: { categorieSlug: string | null | undefined }) {
+  const brussel = isBrusselSectie(categorieSlug)
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+      brussel ? 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
+    }`}>
+      {brussel ? BRUSSEL_SECTIE_LABEL : 'Oostende'}
+    </span>
+  )
+}
+
+function getAdminCategorieLabel(categorieSlug: string | null | undefined): string {
+  if (isBrusselSectie(categorieSlug)) return 'Geen subcategorie'
+  return getCategorieLabel(categorieSlug)
+}
+
+function SectieFilters({
+  filter,
+  tellingen,
+  onChange,
+}: {
+  filter: SectieFilter
+  tellingen: Record<SectieFilter, number>
+  onChange: (value: SectieFilter) => void
+}) {
+  const opties: { value: SectieFilter; label: string }[] = [
+    { value: 'alle', label: 'Alle' },
+    { value: 'oostende', label: 'Oostende' },
+    { value: 'brussel', label: BRUSSEL_SECTIE_LABEL },
+  ]
+
+  return (
+    <div className="flex gap-2 flex-wrap">
+      {opties.map((optie) => (
+        <button
+          key={optie.value}
+          onClick={() => onChange(optie.value)}
+          className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+            filter === optie.value
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+          }`}
+        >
+          {optie.label} ({tellingen[optie.value]})
+        </button>
+      ))}
     </div>
   )
 }
@@ -188,17 +250,19 @@ export default function AdminPage() {
 function Overzicht({ stats }: { stats: Stats }) {
   return (
     <div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         <StatCard label="Gepubliceerd" waarde={stats.gepubliceerd} />
         <StatCard label="Concepten" waarde={stats.concept} />
         <StatCard label="Open opdrachten" waarde={stats.openOpdrachten} />
         <StatCard label="Nieuwe feedback" waarde={stats.nieuweFeedback} />
+        <StatCard label="Oostende-sectie" waarde={stats.perSectie.oostende} />
+        <StatCard label="Brussel-sectie" waarde={stats.perSectie.brussel} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Per categorie */}
         <div className="bg-white dark:bg-[#252540] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-4">Artikelen per categorie</h3>
+          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-4">Oostende-artikelen per categorie</h3>
           {Object.entries(stats.perCategorie).length === 0 ? (
             <p className="text-gray-400 text-sm">Nog geen data</p>
           ) : (
@@ -253,7 +317,7 @@ function Overzicht({ stats }: { stats: Stats }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><span className="text-gray-400">Totaal artikelen:</span> <strong>{stats.totaalArtikelen}</strong></div>
           <div><span className="text-gray-400">Totaal scans:</span> <strong>{stats.totaalScans}</strong></div>
-          <div><span className="text-gray-400">Scheduled task:</span> <strong>6x/dag</strong></div>
+          <div><span className="text-gray-400">Cowork-cycli:</span> <strong>Oostende + Brussel</strong></div>
           <div><span className="text-gray-400">Database:</span> <strong>Supabase</strong></div>
         </div>
       </div>
@@ -262,11 +326,24 @@ function Overzicht({ stats }: { stats: Stats }) {
 }
 
 function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate: () => void }) {
+  const [filter, setFilter] = useState<SectieFilter>('alle')
   const [editId, setEditId] = useState<string | null>(null)
+  const tellingen: Record<SectieFilter, number> = {
+    alle: artikelen.length,
+    oostende: artikelen.filter(a => getSectie(a.categorie_slug) === 'oostende').length,
+    brussel: artikelen.filter(a => getSectie(a.categorie_slug) === 'brussel').length,
+  }
+  const gefilterdeArtikelen = filter === 'alle'
+    ? artikelen
+    : artikelen.filter(a => getSectie(a.categorie_slug) === filter)
   const editArtikel = artikelen.find(a => a.id === editId)
+  const artikelenColSpan = editId ? 5 : 6
 
   return (
-    <div className="flex gap-6">
+    <div className="space-y-4">
+      <SectieFilters filter={filter} tellingen={tellingen} onChange={setFilter} />
+
+      <div className="flex gap-6">
       {/* Tabel */}
       <div className={`bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${editId ? 'w-1/2' : 'w-full'} transition-all`}>
         <div className="overflow-x-auto">
@@ -274,6 +351,7 @@ function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate:
             <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Titel</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Sectie</th>
                 {!editId && <th className="text-left px-4 py-3 font-medium text-gray-500">Categorie</th>}
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
@@ -281,13 +359,14 @@ function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate:
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {artikelen.map(a => (
+              {gefilterdeArtikelen.map(a => (
                 <tr key={a.id} className={`hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors cursor-pointer ${editId === a.id ? 'bg-blue-50 dark:bg-[#1e2d4a]' : ''}`} onClick={() => setEditId(a.id)}>
                   <td className="px-4 py-3">
                     <span className="font-medium text-gray-700 dark:text-gray-300">{a.titel}</span>
                     <div className="text-xs text-gray-400 mt-0.5">{a.slug}</div>
                   </td>
-                  {!editId && <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{categorieNamen[a.categorie_slug] || a.categorie_slug}</td>}
+                  <td className="px-4 py-3"><SectieBadge categorieSlug={a.categorie_slug} /></td>
+                  {!editId && <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{getAdminCategorieLabel(a.categorie_slug)}</td>}
                   <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatDatum(a.publicatie_datum)}</td>
                   <td className="px-4 py-3">
@@ -295,8 +374,8 @@ function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate:
                   </td>
                 </tr>
               ))}
-              {artikelen.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Geen artikelen gevonden</td></tr>
+              {gefilterdeArtikelen.length === 0 && (
+                <tr><td colSpan={artikelenColSpan} className="text-center py-8 text-gray-400">Geen artikelen gevonden</td></tr>
               )}
             </tbody>
           </table>
@@ -307,6 +386,7 @@ function ArtikelenTab({ artikelen, onUpdate }: { artikelen: Artikel[]; onUpdate:
       {editId && editArtikel && (
         <ArtikelEditor artikel={editArtikel} onClose={() => setEditId(null)} onSaved={() => { onUpdate(); }} />
       )}
+      </div>
     </div>
   )
 }
@@ -379,7 +459,7 @@ function ArtikelEditor({ artikel, onClose, onSaved }: { artikel: Artikel; onClos
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-700 dark:text-gray-300">Artikel bewerken</h3>
         <div className="flex items-center gap-2">
-          <a href={`/${artikel.categorie_slug}/${artikel.slug}`} target="_blank" className="text-xs text-[#1e6091] hover:underline">Bekijk live</a>
+          <a href={getArtikelPadVanSlug(artikel.categorie_slug, artikel.slug)} target="_blank" className="text-xs text-[#1e6091] hover:underline">Bekijk live</a>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
         </div>
       </div>
@@ -392,8 +472,9 @@ function ArtikelEditor({ artikel, onClose, onSaved }: { artikel: Artikel; onClos
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Categorie</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Sectie / categorie</label>
             <select value={categorie} onChange={e => setCategorie(e.target.value)} className={inp}>
+              <option value={BRUSSEL_SECTIE_SLUG}>{BRUSSEL_SECTIE_LABEL} (sectie)</option>
               {Object.entries(categorieNamen).map(([slug, naam]) => (
                 <option key={slug} value={slug}>{naam}</option>
               ))}
@@ -452,13 +533,27 @@ function ArtikelEditor({ artikel, onClose, onSaved }: { artikel: Artikel; onClos
 }
 
 function OpdrachtenTab({ opdrachten }: { opdrachten: Opdracht[] }) {
+  const [filter, setFilter] = useState<SectieFilter>('alle')
+  const tellingen: Record<SectieFilter, number> = {
+    alle: opdrachten.length,
+    oostende: opdrachten.filter(o => getSectie(o.categorie_slug) === 'oostende').length,
+    brussel: opdrachten.filter(o => getSectie(o.categorie_slug) === 'brussel').length,
+  }
+  const gefilterdeOpdrachten = filter === 'alle'
+    ? opdrachten
+    : opdrachten.filter(o => getSectie(o.categorie_slug) === filter)
+
   return (
-    <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div className="space-y-4">
+      <SectieFilters filter={filter} tellingen={tellingen} onChange={setFilter} />
+
+      <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Titel</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Sectie</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Categorie</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Prioriteit</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
@@ -466,10 +561,11 @@ function OpdrachtenTab({ opdrachten }: { opdrachten: Opdracht[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {opdrachten.map(o => (
+            {gefilterdeOpdrachten.map(o => (
               <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors">
                 <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{o.titel}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{categorieNamen[o.categorie_slug || ''] || o.categorie_slug || '-'}</td>
+                <td className="px-4 py-3"><SectieBadge categorieSlug={o.categorie_slug} /></td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{getAdminCategorieLabel(o.categorie_slug)}</td>
                 <td className="px-4 py-3">
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
                     o.prioriteit === 'hoog' ? 'bg-red-100 text-red-700' :
@@ -481,12 +577,13 @@ function OpdrachtenTab({ opdrachten }: { opdrachten: Opdracht[] }) {
                 <td className="px-4 py-3 text-gray-500">{formatDatum(o.created_at)}</td>
               </tr>
             ))}
-            {opdrachten.length === 0 && (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nog geen opdrachten. De eerste nieuwscyclus moet nog draaien.</td></tr>
+            {gefilterdeOpdrachten.length === 0 && (
+              <tr><td colSpan={6} className="text-center py-8 text-gray-400">Nog geen opdrachten in deze sectie.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   )
 }

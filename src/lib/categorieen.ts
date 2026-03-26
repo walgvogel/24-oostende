@@ -8,6 +8,12 @@ export type CategorieConfig = {
   kleur: string
 }
 
+const FALLBACK_KLEUR = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+
+export const BRUSSEL_SECTIE_SLUG = 'brussel'
+export const BRUSSEL_SECTIE_LABEL = 'Brussel'
+export const BRUSSEL_SECTIE_KLEUR = 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200'
+
 export const CATEGORIEEN: CategorieConfig[] = [
   { slug: 'politiek', naam: 'Politiek', naamKort: 'Politiek', kleur: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
   { slug: 'samenleving', naam: 'Samenleving', naamKort: 'Samenleving', kleur: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
@@ -25,3 +31,40 @@ export const categorieBySlug = Object.fromEntries(CATEGORIEEN.map(c => [c.slug, 
 export const categorieNamen: Record<string, string> = Object.fromEntries(CATEGORIEEN.map(c => [c.slug, c.naamKort]))
 export const categorieNamenVolledig: Record<string, string> = Object.fromEntries(CATEGORIEEN.map(c => [c.slug, c.naam]))
 export const categorieKleuren: Record<string, string> = Object.fromEntries(CATEGORIEEN.map(c => [c.slug, c.kleur]))
+
+export function isBrusselSectie(slug: string | null | undefined): boolean {
+  return slug === BRUSSEL_SECTIE_SLUG
+}
+
+export function getCategorieLabel(
+  slug: string | null | undefined,
+  variant: 'kort' | 'volledig' = 'kort'
+): string {
+  if (!slug) return '-'
+  if (isBrusselSectie(slug)) return BRUSSEL_SECTIE_LABEL
+  return variant === 'volledig'
+    ? categorieNamenVolledig[slug] || slug
+    : categorieNamen[slug] || slug
+}
+
+export function getCategorieKleur(slug: string | null | undefined): string {
+  if (!slug) return FALLBACK_KLEUR
+  if (isBrusselSectie(slug)) return BRUSSEL_SECTIE_KLEUR
+  return categorieKleuren[slug] || FALLBACK_KLEUR
+}
+
+export function getArtikelPad(artikel: { categorie_slug: string; slug: string }): string {
+  const categorieSlug = artikel.categorie_slug
+  const artikelSlug = artikel.slug
+  if (isBrusselSectie(categorieSlug)) {
+    return `/${BRUSSEL_SECTIE_SLUG}/${artikelSlug}`
+  }
+  return `/${categorieSlug}/${artikelSlug}`
+}
+
+export function getArtikelPadVanSlug(categorieSlug: string, slug: string): string {
+  if (isBrusselSectie(categorieSlug)) {
+    return `/${BRUSSEL_SECTIE_SLUG}/${slug}`
+  }
+  return `/${categorieSlug}/${slug}`
+}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Artikel } from '@/lib/supabase'
-import { categorieKleuren, categorieNamen } from '@/lib/categorieen'
+import { getArtikelPad, getCategorieKleur, getCategorieLabel } from '@/lib/categorieen'
 import { getArtikelType, ARTIKEL_TYPES } from '@/lib/artikeltypes'
 
 function formatDatum(datum: string) {
@@ -12,14 +12,14 @@ function formatDatum(datum: string) {
 }
 
 export function ArtikelKaart({ artikel, groot = false }: { artikel: Artikel; groot?: boolean }) {
-  const kleur = categorieKleuren[artikel.categorie_slug] || 'bg-gray-100 text-gray-800'
-  const catNaam = categorieNamen[artikel.categorie_slug] || artikel.categorie_slug
+  const kleur = getCategorieKleur(artikel.categorie_slug)
+  const catNaam = getCategorieLabel(artikel.categorie_slug)
   const type = getArtikelType(artikel.tags)
   const typeConfig = ARTIKEL_TYPES[type]
 
   return (
     <article className={`bg-bg-white rounded-[10px] overflow-hidden shadow-sm hover:shadow-md transition-shadow ${groot ? 'col-span-full' : ''}`}>
-      <Link href={`/${artikel.categorie_slug}/${artikel.slug}`} className="block p-6">
+      <Link href={getArtikelPad(artikel)} className="block p-6">
         <div className="flex items-center gap-3 mb-3">
           <span className={`text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded ${kleur}`}>
             {catNaam}
