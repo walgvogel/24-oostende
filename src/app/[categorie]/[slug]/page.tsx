@@ -105,19 +105,6 @@ export default async function ArtikelPage({ params }: Props) {
         </div>
       )}
 
-      {artikel.bronnen && artikel.bronnen.length > 0 && (
-        <div className="text-[13px] text-text-light italic mt-6 pt-4 border-t border-border">
-          Bronnen:{' '}
-          {artikel.bronnen.map((bron, i) => (
-            <span key={i}>
-              {i > 0 && ', '}
-              <a href={bron.url} target="_blank" rel="noopener noreferrer" className="text-blue-light underline">
-                {bron.naam}
-              </a>
-            </span>
-          ))}
-        </div>
-      )}
 
       <SocialShare titel={artikel.titel} />
 
