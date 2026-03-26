@@ -528,6 +528,7 @@ function ScansTab({ scans }: { scans: Scan[] }) {
 
 function FeedbackTab({ feedback, artikelen, onUpdate }: { feedback: (Feedback & { artikel_titel?: string })[]; artikelen: Artikel[]; onUpdate: () => void }) {
   const artikelMap = new Map(artikelen.map(a => [a.id, a.titel]))
+  const [filter, setFilter] = useState<string>('alle')
 
   const handleStatus = async (id: string, status: string) => {
     try {
@@ -538,48 +539,85 @@ function FeedbackTab({ feedback, artikelen, onUpdate }: { feedback: (Feedback & 
     }
   }
 
+  const tellingen = {
+    alle: feedback.length,
+    nieuw: feedback.filter(f => f.status === 'nieuw').length,
+    in_behandeling: feedback.filter(f => f.status === 'in_behandeling').length,
+    afgehandeld: feedback.filter(f => f.status === 'afgehandeld').length,
+    afgewezen: feedback.filter(f => f.status === 'afgewezen').length,
+  }
+
+  const gefilterd = filter === 'alle' ? feedback : feedback.filter(f => f.status === filter)
+
   return (
-    <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Bericht</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Artikel</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Type</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Acties</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {feedback.map(f => (
-              <tr key={f.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors">
-                <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate">{f.bericht}</td>
-                <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{f.artikel_id ? artikelMap.get(f.artikel_id) || '-' : '-'}</td>
-                <td className="px-4 py-3"><StatusBadge status={f.type} /></td>
-                <td className="px-4 py-3"><StatusBadge status={f.status} /></td>
-                <td className="px-4 py-3 text-gray-500">{formatDatum(f.created_at)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1">
-                    {f.status === 'nieuw' && (
-                      <button onClick={() => handleStatus(f.id, 'in_behandeling')} className="text-[10px] px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Behandel</button>
-                    )}
-                    {f.status !== 'afgehandeld' && (
-                      <button onClick={() => handleStatus(f.id, 'afgehandeld')} className="text-[10px] px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors">Klaar</button>
-                    )}
-                    {f.status !== 'afgewezen' && (
-                      <button onClick={() => handleStatus(f.id, 'afgewezen')} className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">Afwijzen</button>
-                    )}
-                  </div>
-                </td>
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {(['alle', 'nieuw', 'in_behandeling', 'afgehandeld', 'afgewezen'] as const).map(s => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+              filter === s
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+            }`}
+          >
+            {s === 'alle' ? 'Alle' : s === 'in_behandeling' ? 'In behandeling' : s.charAt(0).toUpperCase() + s.slice(1)} ({tellingen[s]})
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Bericht</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Artikel</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Conclusie</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Acties</th>
               </tr>
-            ))}
-            {feedback.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-8 text-gray-400">Geen feedback ontvangen</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {gefilterd.map(f => (
+                <tr key={f.id} className={`hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors ${f.status === 'in_behandeling' ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs">
+                    <div className="truncate">{f.bericht}</div>
+                    {f.email && <div className="text-[10px] text-gray-400 mt-0.5">{f.email}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{f.artikel_id ? artikelMap.get(f.artikel_id) || '-' : '-'}</td>
+                  <td className="px-4 py-3"><StatusBadge status={f.status} /></td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[250px]">
+                    {f.conclusie ? (
+                      <div className="text-xs leading-relaxed line-clamp-3">{f.conclusie}</div>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDatum(f.created_at)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      {f.status === 'nieuw' && (
+                        <button onClick={() => handleStatus(f.id, 'in_behandeling')} className="text-[10px] px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Behandel</button>
+                      )}
+                      {f.status !== 'afgehandeld' && (
+                        <button onClick={() => handleStatus(f.id, 'afgehandeld')} className="text-[10px] px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors">Klaar</button>
+                      )}
+                      {f.status !== 'afgewezen' && (
+                        <button onClick={() => handleStatus(f.id, 'afgewezen')} className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">Afwijzen</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {gefilterd.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Geen feedback{filter !== 'alle' ? ` met status "${filter}"` : ''}</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { supabase, type Artikel, type Scan, type Opdracht, type Feedback } from './supabase'
+import { supabase, type Artikel, type Scan, type Opdracht, type Feedback, type Correctie } from './supabase'
 
 export async function getAllArtikelen(): Promise<Artikel[]> {
   const { data, error } = await supabase
@@ -77,6 +77,51 @@ export async function updateFeedbackStatus(id: string, status: string): Promise<
     .from('feedback')
     .update({ status })
     .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function updateFeedbackConclusie(
+  id: string,
+  status: string,
+  conclusie: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ status, conclusie, verwerkt_op: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function voegCorrectieToe(
+  artikelId: string,
+  omschrijving: string,
+  feedbackId: string | null
+): Promise<void> {
+  // Haal huidige correcties op
+  const { data, error: fetchError } = await supabase
+    .from('artikelen')
+    .select('correcties')
+    .eq('id', artikelId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const bestaand: Correctie[] = (data?.correcties as Correctie[]) || []
+  const nieuw: Correctie = {
+    datum: new Date().toISOString(),
+    omschrijving,
+    feedback_id: feedbackId,
+  }
+
+  const { error } = await supabase
+    .from('artikelen')
+    .update({
+      correcties: [...bestaand, nieuw],
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', artikelId)
 
   if (error) throw error
 }

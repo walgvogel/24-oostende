@@ -20,6 +20,7 @@ export type Artikel = {
   is_schuimkoppen: boolean
   leestijd_minuten: number
   afbeelding_url: string | null
+  correcties: Correctie[]
   created_at: string
   updated_at: string
 }
@@ -62,7 +63,15 @@ export type Feedback = {
   bericht: string
   email: string | null
   status: string
+  conclusie: string | null
+  verwerkt_op: string | null
   created_at: string
+}
+
+export type Correctie = {
+  datum: string
+  omschrijving: string
+  feedback_id: string | null
 }
 
 export type Vraag = {

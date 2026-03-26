@@ -6,6 +6,7 @@ import { SocialShare } from '@/components/SocialShare'
 import { FeedbackKnop } from '@/components/FeedbackKnop'
 import { VraagSectie } from '@/components/VraagSectie'
 import { ArtefactWeergave } from '@/components/ArtefactWeergave'
+import { CorrectieNotitie } from '@/components/CorrectieNotitie'
 import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
 import { getArtikelType, getInhoudsTags, ARTIKEL_TYPES } from '@/lib/artikeltypes'
 
@@ -105,6 +106,8 @@ export default async function ArtikelPage({ params }: Props) {
         </div>
       )}
 
+
+      <CorrectieNotitie correcties={artikel.correcties || []} />
 
       <SocialShare titel={artikel.titel} />
 
