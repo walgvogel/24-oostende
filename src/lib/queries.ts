@@ -1,4 +1,4 @@
-import { supabase, type Artikel, type Categorie } from './supabase'
+import { supabase, type Artikel, type Categorie, type Vraag } from './supabase'
 
 export async function getArtikelen(limit = 20): Promise<Artikel[]> {
   const { data, error } = await supabase
@@ -92,4 +92,17 @@ export async function submitFeedback(artikelId: string, bericht: string, email?:
     })
 
   if (error) throw error
+}
+
+export async function getBeantwoordeVragen(artikelId: string): Promise<Vraag[]> {
+  const { data, error } = await supabase
+    .from('vragen')
+    .select('id, artikel_id, vraag, naam, status, antwoord, beantwoord_op, created_at')
+    .eq('artikel_id', artikelId)
+    .eq('status', 'beantwoord')
+    .order('beantwoord_op', { ascending: false })
+    .limit(10)
+
+  if (error) throw error
+  return (data || []) as Vraag[]
 }

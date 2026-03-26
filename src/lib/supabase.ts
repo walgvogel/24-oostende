@@ -64,3 +64,18 @@ export type Feedback = {
   status: string
   created_at: string
 }
+
+export type Vraag = {
+  id: string
+  artikel_id: string
+  vraag: string
+  naam: string | null
+  status: 'nieuw' | 'in_behandeling' | 'beantwoord' | 'verworpen' | 'fout'
+  antwoord: string | null
+  beantwoord_op: string | null
+  beantwoord_door: string | null
+  afgewezen_reden: string | null
+  foutmelding: string | null
+  created_at: string
+  updated_at: string
+}

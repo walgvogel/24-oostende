@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getAllArtikelen, getScans, getOpdrachten, getFeedback, getStats, updateArtikel, archiveerArtikel, publiceerArtikel, updateFeedbackStatus } from '@/lib/admin-queries'
-import type { Artikel, Scan, Opdracht, Feedback } from '@/lib/supabase'
+import type { Artikel, Scan, Opdracht, Feedback, Vraag } from '@/lib/supabase'
 import { categorieNamen } from '@/lib/categorieen'
 
 type Stats = Awaited<ReturnType<typeof getStats>>
-type Tab = 'overzicht' | 'artikelen' | 'opdrachten' | 'scans' | 'feedback'
+type Tab = 'overzicht' | 'artikelen' | 'opdrachten' | 'scans' | 'feedback' | 'vragen'
 
 const statusKleuren: Record<string, string> = {
   gepubliceerd: 'bg-green-100 text-green-800',
@@ -52,19 +52,22 @@ export default function AdminPage() {
   const [scans, setScans] = useState<Scan[]>([])
   const [opdrachten, setOpdrachten] = useState<Opdracht[]>([])
   const [feedback, setFeedback] = useState<(Feedback & { artikel_titel?: string })[]>([])
+  const [vragen, setVragen] = useState<Vraag[]>([])
   const [laden, setLaden] = useState(false)
 
   const laadData = useCallback(async () => {
     setLaden(true)
     try {
-      const [s, a, sc, o, f] = await Promise.all([
-        getStats(), getAllArtikelen(), getScans(), getOpdrachten(), getFeedback()
+      const [s, a, sc, o, f, v] = await Promise.all([
+        getStats(), getAllArtikelen(), getScans(), getOpdrachten(), getFeedback(),
+        fetch('/api/admin/vragen').then(r => r.ok ? r.json() : []).catch(() => [])
       ])
       setStats(s)
       setArtikelen(a)
       setScans(sc)
       setOpdrachten(o)
       setFeedback(f)
+      setVragen(v)
     } catch (e) {
       console.error('Fout bij laden:', e)
     }
@@ -127,6 +130,7 @@ export default function AdminPage() {
     { id: 'opdrachten', label: `Opdrachten (${opdrachten.length})` },
     { id: 'scans', label: `Scans (${scans.length})` },
     { id: 'feedback', label: `Feedback (${feedback.length})` },
+    { id: 'vragen', label: `Vragen (${vragen.length})` },
   ]
 
   return (
@@ -175,6 +179,7 @@ export default function AdminPage() {
         {tab === 'opdrachten' && <OpdrachtenTab opdrachten={opdrachten} />}
         {tab === 'scans' && <ScansTab scans={scans} />}
         {tab === 'feedback' && <FeedbackTab feedback={feedback} artikelen={artikelen} onUpdate={laadData} />}
+        {tab === 'vragen' && <VragenTab vragen={vragen} artikelen={artikelen} onUpdate={laadData} />}
       </div>
     </div>
   )
@@ -572,6 +577,85 @@ function FeedbackTab({ feedback, artikelen, onUpdate }: { feedback: (Feedback & 
             ))}
             {feedback.length === 0 && (
               <tr><td colSpan={6} className="text-center py-8 text-gray-400">Geen feedback ontvangen</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function VragenTab({ vragen, artikelen, onUpdate }: { vragen: Vraag[]; artikelen: Artikel[]; onUpdate: () => void }) {
+  const artikelMap = new Map(artikelen.map(a => [a.id, a.titel]))
+
+  const handleStatus = async (id: string, status: string) => {
+    try {
+      await fetch('/api/admin/vragen', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      onUpdate()
+    } catch (e) {
+      console.error('Fout bij status update:', e)
+    }
+  }
+
+  const vraagStatusKleuren: Record<string, string> = {
+    nieuw: 'bg-blue-100 text-blue-800',
+    in_behandeling: 'bg-yellow-100 text-yellow-800',
+    beantwoord: 'bg-green-100 text-green-800',
+    verworpen: 'bg-red-100 text-red-800',
+    fout: 'bg-orange-100 text-orange-800',
+  }
+
+  return (
+    <div className="bg-white dark:bg-[#252540] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-[#1a1a2e]">
+            <tr>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Vraag</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Naam</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Artikel</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Reden</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Datum</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Acties</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            {vragen.map(v => (
+              <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-[#1a1a2e] transition-colors">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs">
+                  <div className="truncate">{v.vraag}</div>
+                  {v.antwoord && (
+                    <div className="text-xs text-gray-400 mt-1 truncate">Antwoord: {v.antwoord.slice(0, 80)}...</div>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{v.naam || <span className="italic">anoniem</span>}</td>
+                <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate text-xs">{v.artikel_id ? artikelMap.get(v.artikel_id) || '-' : '-'}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${vraagStatusKleuren[v.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {v.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-gray-400 text-xs max-w-[120px] truncate">{v.afgewezen_reden || '-'}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{formatDatum(v.created_at)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    {v.status === 'nieuw' && (
+                      <button onClick={() => handleStatus(v.id, 'verworpen')} className="text-[10px] px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">Verwerp</button>
+                    )}
+                    {v.status === 'fout' && (
+                      <button onClick={() => handleStatus(v.id, 'nieuw')} className="text-[10px] px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Opnieuw</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {vragen.length === 0 && (
+              <tr><td colSpan={7} className="text-center py-8 text-gray-400">Nog geen lezersvragen ontvangen</td></tr>
             )}
           </tbody>
         </table>

@@ -1,9 +1,10 @@
-import { getArtikelBySlug, getArtikelen } from '@/lib/queries'
+import { getArtikelBySlug, getArtikelen, getBeantwoordeVragen } from '@/lib/queries'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SocialShare } from '@/components/SocialShare'
 import { FeedbackKnop } from '@/components/FeedbackKnop'
+import { VraagSectie } from '@/components/VraagSectie'
 import { ArtefactWeergave } from '@/components/ArtefactWeergave'
 import { categorieNamenVolledig as categorieNamen } from '@/lib/categorieen'
 
@@ -53,6 +54,7 @@ export default async function ArtikelPage({ params }: Props) {
 
   const catNaam = categorieNamen[artikel.categorie_slug] || artikel.categorie_slug
   const htmlInhoud = stripScripts(markdownToHtml(artikel.inhoud))
+  const beantwoordeVragen = await getBeantwoordeVragen(artikel.id)
 
   return (
     <article className="max-w-[760px] mx-auto px-6 py-10">
@@ -111,6 +113,8 @@ export default async function ArtikelPage({ params }: Props) {
       )}
 
       <SocialShare titel={artikel.titel} />
+
+      <VraagSectie artikelId={artikel.id} initialVragen={beantwoordeVragen} />
 
       <FeedbackKnop artikelId={artikel.id} />
     </article>
